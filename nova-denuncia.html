@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDU — Nova Denúncia</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet: biblioteca de mapas open-source -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+<body>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fa-solid fa-eye"></i>
+            <span class="logo-text">SDU</span>
+        </div>
+        <button class="menu-toggle" id="menuToggle" title="Recolher menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <nav class="menu">
+        <a href="index.html" class="menu-item" data-label="Início"">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+        <a href="denuncias.html" class="menu-item" data-label="Suas Denúncias"">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Suas Denúncias</span>
+        </a>
+        <a href="nova-denuncia.html" class="menu-item" data-label="Nova Denúncia" active">
+            <i class="fa-solid fa-plus"></i>
+            <span>Faça Nova Denúncia</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <span class="sidebar-footer-text">SDU © 2026</span>
+    </div>
+
+</aside>
+
+<!-- ── CONTEÚDO PRINCIPAL ─────────────────────────────────── -->
+<main class="main">
+<div class="form-page">
+
+    <div class="form-card">
+        <h1>Nova Denúncia</h1>
+        <p class="subtitle">Registre um problema urbano na sua cidade</p>
+
+        <form id="form-denuncia">
+
+            <!-- Endereço (obrigatório) -->
+            <div class="form-group">
+                <label for="endereco">
+                    Endereço
+                </label>
+                <input
+                    type="text"
+                    id="endereco"
+                    placeholder="Ex: Rua das Flores, 123, Boa Vista, Recife"
+                    required
+                    autocomplete="street-address"
+                >
+            </div>
+
+            <!-- Linha: CEP (opcional) + Ponto de Referência -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="cep">
+                        CEP <span class="opcional">(opcional)</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="cep"
+                        placeholder="Ex: 50040-090"
+                        maxlength="9"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="ponto_referencia">Ponto de Referência</label>
+                    <input
+                        type="text"
+                        id="ponto_referencia"
+                        placeholder="Ex: Próximo ao mercado"
+                    >
+                </div>
+            </div>
+
+            <!-- Tipo do problema (obrigatório) -->
+            <div class="form-group">
+                <label for="tipo">Tipo do Problema</label>
+                <select id="tipo" required>
+                    <option value="">Selecione o tipo...</option>
+                    <option value="buraco">🕳️ Buraco</option>
+                    <option value="fiacao_solta">⚡ Fiação solta</option>
+                    <option value="alagamento">💧 Alagamento</option>
+                    <option value="outros">📌 Outros</option>
+                </select>
+            </div>
+
+            <!-- Descrição -->
+            <div class="form-group">
+                <label for="descricao">Descrição do Problema</label>
+                <textarea
+                    id="descricao"
+                    placeholder="Descreva o problema com o máximo de detalhes possível..."
+                ></textarea>
+            </div>
+
+            <!-- Mapa circular: atualiza ao preencher o endereço -->
+            <div class="mapa-wrapper">
+                <p>
+                    <i class="fa-solid fa-location-dot" style="color: var(--accent)"></i>
+                    O mapa será atualizado conforme você digita o endereço
+                </p>
+                <div class="mapa-circular">
+                    <div id="mapa-form"></div>
+                </div>
+            </div>
+
+            <!-- Campos ocultos para guardar lat/lon obtidos via geocodificação -->
+            <input type="hidden" id="latitude">
+            <input type="hidden" id="longitude">
+
+            <!-- Botão enviar (canto inferior direito) -->
+            <div class="form-actions">
+                <button type="submit" class="btn-enviar">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    Enviar Denúncia
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+</main>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script>
+<script>
+    // ── MAPA ──────────────────────────────────────────────────
+    // Coordenadas iniciais: centro de Recife (PE)
+    const LAT_INICIAL = -8.0476;
+    const LON_INICIAL = -34.8770;
+
+    const mapa    = L.map("mapa-form").setView([LAT_INICIAL, LON_INICIAL], 13);
+    const marcador = L.marker([LAT_INICIAL, LON_INICIAL]).addTo(mapa);
+
+    // Mapa base do OpenStreetMap (gratuito, sem chave de API)
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap"
+    }).addTo(mapa);
+
+
+    // ── GEOCODIFICAÇÃO ─────────────────────────────────────────
+    // Converte endereço em coordenadas usando a API Nominatim (gratuita)
+    async function geocodificar(textoEndereco) {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(textoEndereco)}&format=json&limit=1`;
+
+        try {
+            const resposta = await fetch(url, {
+                headers: { "Accept-Language": "pt-BR" }
+            });
+            const dados = await resposta.json();
+
+            if (dados.length > 0) {
+                const lat = parseFloat(dados[0].lat);
+                const lon = parseFloat(dados[0].lon);
+
+                // Move o marcador e centraliza o mapa
+                marcador.setLatLng([lat, lon]);
+                mapa.setView([lat, lon], 16);
+
+                // Salva as coordenadas nos campos ocultos do formulário
+                document.getElementById("latitude").value  = lat;
+                document.getElementById("longitude").value = lon;
+            }
+        } catch (erro) {
+            console.error("Erro ao geocodificar:", erro);
+        }
+    }
+
+    // Dispara geocodificação após o usuário parar de digitar (800ms)
+    let temporizador = null;
+
+    function agendarGeocodificacao() {
+        clearTimeout(temporizador);
+
+        const endereco = document.getElementById("endereco").value.trim();
+        const cep      = document.getElementById("cep").value.trim();
+
+        // Combina endereço + CEP para busca mais precisa
+        const busca = cep ? `${endereco}, ${cep}` : endereco;
+
+        if (busca.length > 6) {
+            temporizador = setTimeout(() => geocodificar(busca), 800);
+        }
+    }
+
+    document.getElementById("endereco").addEventListener("input", agendarGeocodificacao);
+    document.getElementById("cep").addEventListener("input", agendarGeocodificacao);
+
+
+    // ── ENVIO DO FORMULÁRIO ────────────────────────────────────
+    document.getElementById("form-denuncia").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const denuncia = {
+            endereco:         document.getElementById("endereco").value.trim(),
+            cep:              document.getElementById("cep").value.trim() || null,
+            ponto_referencia: document.getElementById("ponto_referencia").value.trim() || null,
+            tipo:             document.getElementById("tipo").value,
+            descricao:        document.getElementById("descricao").value.trim() || null,
+            latitude:         document.getElementById("latitude").value  || null,
+            longitude:        document.getElementById("longitude").value || null,
+        };
+
+        try {
+            await criarDenuncia(denuncia);
+            mostrarToast("Denúncia enviada com sucesso! ✅");
+
+            // Aguarda o toast aparecer antes de redirecionar
+            setTimeout(() => {
+                window.location.href = "denuncias.html";
+            }, 1500);
+
+        } catch (erro) {
+            mostrarToast("Erro: " + erro.message);
+        }
+    });
+
+    // Aplica máscara de CEP: 00000-000
+    document.getElementById("cep").addEventListener("input", (e) => {
+        let v = e.target.value.replace(/\D/g, "");
+        if (v.length > 5) v = v.slice(0, 5) + "-" + v.slice(5, 8);
+        e.target.value = v;
+    });
+</script>
+
+</body>
+</html>

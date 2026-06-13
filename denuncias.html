@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDU — Suas Denúncias</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fa-solid fa-eye"></i>
+            <span class="logo-text">SDU</span>
+        </div>
+        <button class="menu-toggle" id="menuToggle" title="Recolher menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <nav class="menu">
+        <a href="index.html" class="menu-item" data-label="Início"">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+        <a href="denuncias.html" class="menu-item" data-label="Suas Denúncias" active">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Suas Denúncias</span>
+        </a>
+        <a href="nova-denuncia.html" class="menu-item" data-label="Nova Denúncia"">
+            <i class="fa-solid fa-plus"></i>
+            <span>Faça Nova Denúncia</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <span class="sidebar-footer-text">SDU © 2026</span>
+    </div>
+
+</aside>
+
+<!-- ── CONTEÚDO PRINCIPAL ─────────────────────────────────── -->
+<main class="main">
+<div class="denuncias-page">
+
+    <div class="page-header">
+        <h1>Suas Denúncias</h1>
+        <p>Gerencie e acompanhe os problemas que você reportou</p>
+    </div>
+
+    <!-- Lista de cards (preenchida pelo JavaScript) -->
+    <div id="lista-denuncias">
+        <p style="color: #aaa; padding: 20px 0;">Carregando denúncias...</p>
+    </div>
+
+</div>
+</main>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────────── -->
+<script src="script.js"></script>
+<script>
+
+    /* Rótulos amigáveis para tipo e status */
+    const ROTULO_TIPO = {
+        buraco:       "Buraco",
+        fiacao_solta: "Fiação solta",
+        alagamento:   "Alagamento",
+        outros:       "Outros",
+    };
+
+    const ROTULO_STATUS = {
+        aberta:    "Aberta",
+        em_ajuste: "Em Ajuste",
+        concluida: "Concluída",
+        nao_houve: "Não Houve",
+    };
+
+
+    // ── CARREGAR DENÚNCIAS ─────────────────────────────────────
+    async function carregarDenuncias() {
+        try {
+            const lista    = await buscarDenuncias();
+            const container = document.getElementById("lista-denuncias");
+            container.innerHTML = "";
+
+            if (lista.length === 0) {
+                container.innerHTML = `
+                    <div class="sem-denuncias">
+                        <i class="fa-regular fa-face-smile" style="font-size:40px;color:#ccc;margin-bottom:12px;"></i>
+                        <p>Nenhuma denúncia registrada ainda.</p>
+                        <a href="nova-denuncia.html" style="color:var(--accent);">Fazer primeira denúncia</a>
+                    </div>
+                `;
+                return;
+            }
+
+            lista.forEach(d => container.appendChild(criarCard(d)));
+
+        } catch (erro) {
+            document.getElementById("lista-denuncias").innerHTML =
+                `<p style="color:red;">Erro ao carregar denúncias. Verifique se o servidor está rodando.</p>`;
+        }
+    }
+
+
+    // ── CRIAR CARD ─────────────────────────────────────────────
+    function criarCard(d) {
+        const card = document.createElement("div");
+        card.className = "denuncia-card";
+        card.id = `card-${d.id}`;
+
+        // Formata a data para o padrão brasileiro
+        const data = new Date(d.data).toLocaleDateString("pt-BR", {
+            day:   "2-digit",
+            month: "2-digit",
+            year:  "numeric",
+            hour:  "2-digit",
+            minute:"2-digit",
+        });
+
+        card.innerHTML = `
+            <!-- Cabeçalho do card -->
+            <div class="card-top">
+                <div>
+                    <div class="card-tipo">${ROTULO_TIPO[d.tipo] || d.tipo}</div>
+                    <div class="card-endereco">
+                        <i class="fa-solid fa-location-dot" style="color:var(--accent);font-size:12px"></i>
+                        ${d.endereco}
+                        ${d.ponto_referencia ? `· ${d.ponto_referencia}` : ""}
+                    </div>
+                </div>
+                <span class="badge badge-${d.status}">${ROTULO_STATUS[d.status] || d.status}</span>
+            </div>
+
+            <!-- Descrição -->
+            ${d.descricao ? `<p class="card-desc">${d.descricao}</p>` : ""}
+
+            <!-- Data -->
+            <p class="card-data">Registrada em ${data}</p>
+
+            <!-- Rodapé: status + ações -->
+            <div class="card-footer">
+
+                <select class="status-select" onchange="alterarStatus(${d.id}, this.value)">
+                    <option value="aberta"    ${d.status === "aberta"    ? "selected" : ""}>Aberta</option>
+                    <option value="em_ajuste" ${d.status === "em_ajuste" ? "selected" : ""}>Em Ajuste</option>
+                    <option value="concluida" ${d.status === "concluida" ? "selected" : ""}>Concluída</option>
+                    <option value="nao_houve" ${d.status === "nao_houve" ? "selected" : ""}>Não Houve</option>
+                </select>
+
+                <div class="card-acoes">
+                    <button class="btn-editar" onclick="toggleEdicao(${d.id})">
+                        <i class="fa-solid fa-pen"></i> Editar
+                    </button>
+                    <button class="btn-excluir" onclick="removerDenuncia(${d.id})">
+                        <i class="fa-solid fa-trash"></i> Excluir
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Formulário de edição inline (oculto por padrão) -->
+            <div class="edit-form" id="edit-${d.id}">
+                <div class="form-group">
+                    <label>Endereço</label>
+                    <input type="text" id="edit-endereco-${d.id}" value="${d.endereco}">
+                </div>
+                <div class="form-group">
+                    <label>Ponto de referência</label>
+                    <input type="text" id="edit-ref-${d.id}" value="${d.ponto_referencia || ""}">
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="edit-tipo-${d.id}">
+                        <option value="buraco"       ${d.tipo === "buraco"       ? "selected" : ""}>Buraco</option>
+                        <option value="fiacao_solta" ${d.tipo === "fiacao_solta" ? "selected" : ""}>Fiação solta</option>
+                        <option value="alagamento"   ${d.tipo === "alagamento"   ? "selected" : ""}>Alagamento</option>
+                        <option value="outros"       ${d.tipo === "outros"       ? "selected" : ""}>Outros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descrição</label>
+                    <textarea id="edit-desc-${d.id}">${d.descricao || ""}</textarea>
+                </div>
+                <div class="edit-acoes">
+                    <button class="btn-cancelar" onclick="toggleEdicao(${d.id})">Cancelar</button>
+                    <button class="btn-salvar" onclick="salvarEdicao(${d.id})">Salvar</button>
+                </div>
+            </div>
+        `;
+
+        return card;
+    }
+
+
+    // ── ALTERAR STATUS ─────────────────────────────────────────
+    async function alterarStatus(id, novoStatus) {
+        try {
+            await atualizarDenuncia(id, { status: novoStatus });
+
+            // Atualiza apenas o badge no card sem recarregar tudo
+            const card  = document.getElementById(`card-${id}`);
+            const badge = card.querySelector(".badge");
+            badge.className = `badge badge-${novoStatus}`;
+            badge.textContent = ROTULO_STATUS[novoStatus];
+
+            mostrarToast("Status atualizado! ✅");
+        } catch (erro) {
+            mostrarToast("Erro ao atualizar status.");
+        }
+    }
+
+
+    // ── TOGGLE EDIÇÃO ──────────────────────────────────────────
+    function toggleEdicao(id) {
+        const form = document.getElementById(`edit-${id}`);
+        form.classList.toggle("visivel");
+    }
+
+
+    // ── SALVAR EDIÇÃO ──────────────────────────────────────────
+    async function salvarEdicao(id) {
+        const dados = {
+            endereco:        document.getElementById(`edit-endereco-${id}`).value.trim(),
+            ponto_referencia:document.getElementById(`edit-ref-${id}`).value.trim() || null,
+            tipo:            document.getElementById(`edit-tipo-${id}`).value,
+            descricao:       document.getElementById(`edit-desc-${id}`).value.trim() || null,
+        };
+
+        if (!dados.endereco) {
+            mostrarToast("O endereço não pode ficar vazio.");
+            return;
+        }
+
+        try {
+            await atualizarDenuncia(id, dados);
+            mostrarToast("Denúncia atualizada! ✅");
+            carregarDenuncias(); // Recarrega a lista para refletir as mudanças
+        } catch (erro) {
+            mostrarToast("Erro ao salvar edição.");
+        }
+    }
+
+
+    // ── EXCLUIR DENÚNCIA ───────────────────────────────────────
+    async function removerDenuncia(id) {
+        const confirmado = confirm("Tem certeza que deseja excluir esta denúncia?");
+        if (!confirmado) return;
+
+        try {
+            await excluirDenuncia(id);
+
+            // Remove o card da tela sem precisar recarregar a página
+            document.getElementById(`card-${id}`).remove();
+
+            // Se não restar nenhum card, mostra a mensagem de "sem denúncias"
+            const container = document.getElementById("lista-denuncias");
+            if (container.children.length === 0) {
+                carregarDenuncias();
+            }
+
+            mostrarToast("Denúncia excluída. 🗑️");
+        } catch (erro) {
+            mostrarToast("Erro ao excluir denúncia.");
+        }
+    }
+
+
+    // Carrega as denúncias ao abrir a página
+    carregarDenuncias();
+
+</script>
+
+</body>
+</html>

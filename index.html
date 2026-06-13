@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDU — Sistema de Denúncias Urbanas</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+        <div class="logo">
+            <i class="fa-solid fa-eye"></i>
+            <span class="logo-text">SDU</span>
+        </div>
+        <button class="menu-toggle" id="menuToggle" title="Recolher menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+    <nav class="menu">
+        <a href="index.html" class="menu-item" data-label="Início" active">
+            <i class="fa-solid fa-house"></i>
+            <span>Início</span>
+        </a>
+        <a href="denuncias.html" class="menu-item" data-label="Suas Denúncias"">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Suas Denúncias</span>
+        </a>
+        <a href="nova-denuncia.html" class="menu-item" data-label="Nova Denúncia"">
+            <i class="fa-solid fa-plus"></i>
+            <span>Faça Nova Denúncia</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <span class="sidebar-footer-text">SDU © 2026</span>
+    </div>
+
+</aside>
+
+<!-- ── CONTEÚDO PRINCIPAL ─────────────────────────────────── -->
+<main class="main">
+
+    <!-- SEÇÃO 1: HERO -->
+    <section class="hero-section">
+        <h1 class="hero-title">SDU</h1>
+        <p class="hero-subtitle">Sistema de Denúncias Urbanas</p>
+        <button class="btn-conhecer" onclick="irParaQuemSomos()">
+            Venha nos Conhecer
+        </button>
+    </section>
+
+    <!-- SEÇÃO 2: QUEM SOMOS (fundo azul escuro) -->
+    <section class="quem-somos-section" id="quem-somos">
+
+        <div class="qs-left">
+            <h2>Quem<br>Somos</h2>
+        </div>
+
+        <div class="qs-right">
+            <p>
+                O SDU é uma iniciativa criada por estudantes que acreditam no poder da
+                tecnologia para transformar as cidades. Nascemos da frustração com
+                problemas urbanos que se repetem sem resolução — buracos, alagamentos,
+                fiação solta — e da vontade de mudar esse cenário.
+            </p>
+            <p>
+                Nossa plataforma conecta cidadãos e poder público de forma direta e
+                transparente. Qualquer pessoa pode registrar um problema, acompanhar
+                seu status e saber quando foi resolvido.
+            </p>
+            <p>
+                Acreditamos que cada denúncia é um ato de cidadania. Juntos,
+                construímos cidades melhores.
+            </p>
+        </div>
+
+    </section>
+
+    <!-- SEÇÃO 3: CALL TO ACTION -->
+    <section class="cta-section">
+        <h2>Algum problema a relatar?</h2>
+        <p>Denuncie!</p>
+        <a href="nova-denuncia.html" class="btn-denuncia">
+            <i class="fa-solid fa-bullhorn"></i>
+            Fazer Denúncia
+        </a>
+    </section>
+
+    <!-- RODAPÉ -->
+    <footer class="page-footer">
+        © 2026 SDU — Sistema de Denúncias Urbanas. Todos os direitos reservados.
+    </footer>
+
+</main>
+
+<script src="script.js"></script>
+<script>
+    /* Scroll suave até a seção "Quem Somos" ao clicar no botão */
+    function irParaQuemSomos() {
+        document.getElementById("quem-somos").scrollIntoView({ behavior: "smooth" });
+    }
+</script>
+
+</body>
+</html>
